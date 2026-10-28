@@ -9,7 +9,7 @@ router.post("/get-me", authControllerService.getMyProfile);
 
 // router.post("/login", authControllerService.login);
 // 
-// router.get("/refresh-token", authControllerService.refreshToken)
+router.get("/refresh-token", authControllerService.refreshToken)
 // 
 // router.get("/logout", authControllerService.logout)
 

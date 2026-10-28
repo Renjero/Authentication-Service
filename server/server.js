@@ -6,7 +6,7 @@ import dns from "dns";
 
 import connectDb from "./config/dbConfig.js";
 import authRoutes from "./routes/authRoutes.js";
-import cookieParser from "cookie-Parser"
+import cookieParser from "cookie-parser";
 
 
 dns.setDefaultResultOrder("ipv4first");
@@ -20,13 +20,22 @@ const PORT = process.env.PORT || 5000;
 // Middleware — MUST come before routes
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser())
+
+
 
 // Connect DB
 connectDb();
 
+
+
+// Parse cookies from incoming requests
+app.use(cookieParser());
+
 // Auth routes
 app.use("/api/auth", authRoutes);
+
+
+
 
 app.listen(PORT, () => {
   console.log(`Backend Server is Running at ${PORT}`.bgCyan);

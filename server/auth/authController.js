@@ -37,21 +37,37 @@ const registerUser = async (req, res) => {
     phone,
     password: hashedPassword,
   });
-
-  const token = jwt.sign(
+  // change 2
+  const accessToken = jwt.sign(
     {
       id: user._id,
     },
     process.env.JWT_SECRET,
-    { expiresIn: "15d" },
+    { expiresIn: "15m" },
   );
+
+  const refreshToken = jwt.sign(
+    {
+      id: user._id,
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: "15m" },
+  );
+
+  // Store the refresh token in an HTTP-only cookie
+  res.cookie("refreshToken", refreshToken, {
+    httpOnly: true, // JavaScript in the browser cannot read this cookie
+    secure: true, // HTTPS in production
+    sameSite: "strict", // Helps protect against CSRF
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
+  });
 
   res.status(200).json({
     message: "User Registed Successfully",
     user: {
       username: user.username,
       email: user.email,
-      token: token,
+      accessToken: accessToken,
       userid: user._id,
     },
   });
@@ -84,12 +100,65 @@ const getMyProfile = async (req, res) => {
   });
 };
 
+const refreshToken = async (req, res) => {
+  const refreshToken = req.cookies.refreshToken;
+
+  // Check whether the cookie exists
+  if (!refreshToken) {
+    return res.status(401).json({
+      message: "Refresh token not found!",
+    });
+  }
+
+  // Next, verify the refresh token and validate its session.
+
+  const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);
+
+  const acessToken = jwt.sign(
+    {
+      id: decoded.id, // User ID stored inside the token
+    },
+    process.env.JWT_SECRET, // Secret key used to sign the token
+    {
+      expiresIn: "15m", // Access token expires after 15 minutes
+    },
+  );
+
+
+  const newRefreshToken = jwt.sign({
+
+      id: decoded.id, // User ID stored inside the token
+    },
+    process.env.JWT_SECRET, // Secret key used to sign the token
+    {
+      expiresIn: "7d", // Access token expires after 15 minutes
+    },)
+
+
+  // Store the refresh token in an HTTP-only cookie
+  res.cookie("refreshToken", newRefreshToken, {
+    httpOnly: true, // JavaScript in the browser cannot read this cookie
+    secure: true, // HTTPS in production
+    sameSite: "strict", // Helps protect against CSRF
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
+  });
+
+
+
+
+  res.status(200).json({
+    message: "Refresh token sucess",
+    acessToken,
+  });
+};
+
+
 
 const authControllerService = {
   registerUser,
   getMyProfile,
+  refreshToken,
   // login,
-  // refreshToken,
   // logout,
 };
 
