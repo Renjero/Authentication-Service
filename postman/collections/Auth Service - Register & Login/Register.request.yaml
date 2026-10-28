@@ -1,0 +1,16 @@
+$kind: http-request
+description: Register a test user. Change the JSON field names if your controller expects different fields.
+url: "{{baseUrl}}/api/auth/register"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "username": "Renjiro",
+      "email": "renjiro@example.com",
+      "phone": "9876543210",
+      "password": "Test@123456"
+    }
+order: 1000

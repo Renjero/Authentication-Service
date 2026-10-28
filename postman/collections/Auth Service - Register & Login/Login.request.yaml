@@ -1,0 +1,14 @@
+$kind: http-request
+description: Log in with the same credentials used in the Register request.
+url: "{{baseUrl}}/api/auth/login"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "email": "{{email}}",
+      "password": "{{password}}"
+    }
+order: 2000

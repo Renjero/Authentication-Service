@@ -1,0 +1,7 @@
+$kind: collection
+description: Postman collection for testing registration and login in a local MERN authentication backend.
+variables:
+  baseUrl: http://localhost:8080
+  email: renjiro@example.com
+  password: Test@123456
+  username: renjiro
