@@ -37,14 +37,7 @@ const registerUser = async (req, res) => {
     phone,
     password: hashedPassword,
   });
-  // change 2
-  const accessToken = jwt.sign(
-    {
-      id: user._id,
-    },
-    process.env.JWT_SECRET,
-    { expiresIn: "15m" },
-  );
+
 
   const refreshToken = jwt.sign(
     {
@@ -53,6 +46,31 @@ const registerUser = async (req, res) => {
     process.env.JWT_SECRET,
     { expiresIn: "15m" },
   );
+
+
+  const refreshTokenHash = await bcrypt.hash(refreshToken, salt)
+  const session = await sessionModel.create({
+    user: user._id,
+    refreshTokenHash,
+    ip : req.ip,
+    userAgent: req.headers["user-agent"]
+    
+  })
+  
+
+
+  // change 2
+  const accessToken = jwt.sign(
+    {
+      id: user._id,
+      sessionId : session._id
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: "15m" },
+  );
+
+
+
 
   // Store the refresh token in an HTTP-only cookie
   res.cookie("refreshToken", refreshToken, {
@@ -114,6 +132,18 @@ const refreshToken = async (req, res) => {
 
   const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);
 
+  const refreshTokenHash = await bcrypt.hash(refreshToken, salt)
+
+  const session = await sessionModel.findOne({
+    refreshTokenHash, 
+    revoked : false
+  })
+  if(!session){
+    return res.status(401).json({
+      message: "invaild refresh token"
+    })
+  }
+
   const acessToken = jwt.sign(
     {
       id: decoded.id, // User ID stored inside the token
@@ -135,6 +165,14 @@ const refreshToken = async (req, res) => {
     },)
 
 
+    const newRefreshTokenHash = bcrypt.hash(newRefreshTokenHash, salt)
+    
+    session.refreshTokenHash = newRefreshTokenHash
+    await session.save()
+
+
+
+
   // Store the refresh token in an HTTP-only cookie
   res.cookie("refreshToken", newRefreshToken, {
     httpOnly: true, // JavaScript in the browser cannot read this cookie
@@ -142,8 +180,6 @@ const refreshToken = async (req, res) => {
     sameSite: "strict", // Helps protect against CSRF
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
   });
-
-
 
 
   res.status(200).json({
@@ -154,12 +190,69 @@ const refreshToken = async (req, res) => {
 
 
 
+const logout = async (req, res) => {
+  const refreshToken = req.cookies.refreshToken;
+
+  // Check whether the refresh token cookie exists
+  if (!refreshToken) {
+    return res.status(400).json({
+      message: "Refresh token not found",
+    });
+  }
+
+  // Verify the refresh token and get its payload
+  const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);
+
+  // Find the session using the user ID from the token
+  const session = await sessionModel.findOne({
+    user: decoded.id,
+    revoked: false,
+  });
+
+  // Check whether the session exists
+  if (!session) {
+    return res.status(401).json({
+      message: "Invalid refresh token",
+    });
+  }
+
+  // Compare the refresh token with the stored hash
+  const isValidRefreshToken = await bcrypt.compare(
+    refreshToken,
+    session.refreshTokenHash
+  );
+
+  if (!isValidRefreshToken) {
+    return res.status(401).json({
+      message: "Invalid refresh token",
+    });
+  }
+
+  // Revoke the session to prevent further use
+  session.revoked = true;
+  await session.save();
+
+  // Clear the refresh token cookie
+  res.clearCookie("refreshToken", {
+    httpOnly: true,
+    secure: true,
+    sameSite: "strict",
+  });
+
+  return res.status(200).json({
+    message: "Successfully logged out!",
+  });
+};
+
+
+
+
 const authControllerService = {
   registerUser,
   getMyProfile,
   refreshToken,
+  logout,
   // login,
-  // logout,
 };
 
 export default authControllerService;

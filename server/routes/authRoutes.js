@@ -11,7 +11,7 @@ router.post("/get-me", authControllerService.getMyProfile);
 // 
 router.get("/refresh-token", authControllerService.refreshToken)
 // 
-// router.get("/logout", authControllerService.logout)
+router.get("/logout", authControllerService.logout)
 
 export default router;
 

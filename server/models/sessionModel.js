@@ -3,7 +3,7 @@ import { Model } from "mongoose";
 
 const sessionSchema = new mongoose.Schema(
   {
-    userId: {
+    user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "users",
       required: [true, "user is required"],
